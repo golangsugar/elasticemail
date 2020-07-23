@@ -80,7 +80,7 @@ func (m Message) AddRecipient(name, address string) Message {
 
 func (m Message) SetRecipient(name, address string) Message {
 	m.To = []Person{
-		Person{
+		{
 			Name:    name,
 			Address: address,
 		},
@@ -98,11 +98,33 @@ func (m Message) AddCC(name, address string) Message {
 	return m
 }
 
+func (m Message) SetCC(name, address string) Message {
+	m.CC = []Person{
+		{
+			Name:    name,
+			Address: address,
+		},
+	}
+
+	return m
+}
+
 func (m Message) AddBCC(name, address string) Message {
 	m.BCC = append(m.BCC, Person{
 		Name:    name,
 		Address: address,
 	})
+
+	return m
+}
+
+func (m Message) SetBCC(name, address string) Message {
+	m.BCC = []Person{
+		{
+			Name:    name,
+			Address: address,
+		},
+	}
 
 	return m
 }
@@ -121,6 +143,16 @@ func (m Message) SetHTML(s string) Message {
 
 func (m Message) SetText(s string) Message {
 	m.Text = s
+
+	return m
+}
+
+func (m Message) AddVariable(key, value string) Message {
+	if m.Substitutions == nil {
+		m.Substitutions = make(map[string]string)
+	}
+
+	m.Substitutions[key] = value
 
 	return m
 }
