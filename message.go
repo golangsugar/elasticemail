@@ -1,5 +1,7 @@
 package elasticemail
 
+import "os"
+
 type Message struct {
 	Template      string
 	Substitutions map[string]string
@@ -12,38 +14,6 @@ type Message struct {
 	HTML          string
 	Text          string
 }
-
-func (m Message) charset() string {
-	return `utf-8`
-}
-
-send?apikey = 94DAF66E-4DF6-4E8E-AF96-D094A8D21DF3&
-
-Template string
-Substitutions map[string]string
-Recipients []Recipient
-Subject string
-From =
-&fromName
-=&sender = &
-senderName =
-
-&replyTo =
-&replyToName =
-&to =
-
-&msgCC =
-&msgBcc=
-&lists =
-bodyHtml = &
-bodyText =
-
-&charsetBodyHtml =
-&charsetBodyText =
-&encodingType =
-&template=
-&headers_firstname = firstname: myValueHere
-isTransactional =false
 
 func (m Message) SetTemplate(t string) Message {
 	m.Template = t
@@ -159,4 +129,42 @@ func (m Message) AddVariable(key, value string) Message {
 
 func New() Message {
 	return Message{}
+}
+
+send?
+
+func (m Message) Send() error {
+	payload := map[string]interface{}{
+		"apikey":  os.Getenv("ELASTICEMAIL_APIKEY"),
+		"isTransactional":false,
+		"subject": m.Subject,
+		"sender":m.From.Address,
+		"senderName":m.From.Name,
+		"replyTo":m.ReplyTo.Address,
+		"replyToName":m.ReplyTo.Name,
+		"msgTo":,
+		"msgCC":,
+		"msgBcc":,
+	}
+
+	if m.HTML!="" {
+		payload["bodyHtml"] = m.HTML
+		payload["charsetBodyHtml"]=`utf-8`
+	}
+
+	if m.Text!="" {
+		payload["bodyText"] = m.HTML
+		payload["charsetBodyText"]=`utf-8`
+	}
+
+	if m.Template != "" {
+		payload["template"] = m.Template
+
+		for k, v := range m.Substitutions {
+			key := `merge_` + k
+			payload[key] = v
+		}
+	}
+
+	return nil
 }
