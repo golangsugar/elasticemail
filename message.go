@@ -195,6 +195,10 @@ func (m Message) Send() error {
 	}
 
 	if resp != nil {
+		if resp.Body != nil {
+			log.Println(resp.Body)
+		}
+
 		if resp.StatusCode == http.StatusOK {
 			return nil
 		}
