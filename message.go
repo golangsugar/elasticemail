@@ -1,12 +1,12 @@
 package elasticemail
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -125,10 +125,10 @@ func peopleAsString(people []person) string {
 	return strings.Join(a, ";")
 }
 
-func (m Message) asMap() map[string]interface{} {
-	payload := map[string]interface{}{
+func (m Message) asMap() map[string]string {
+	payload := map[string]string{
 		"apikey":          os.Getenv(elasticEmailAPIKeyEmailEnvVarName),
-		"isTransactional": false,
+		"isTransactional": "true",
 		"subject":         m.Subject,
 		"sender":          m.From.address,
 		"senderName":      m.From.name,
@@ -163,23 +163,25 @@ func (m Message) asMap() map[string]interface{} {
 
 // Send Email using ElasticEmail API
 func (m Message) Send() error {
-	body := m.asMap()
+	msgParams := m.asMap()
 
-	byteArray, err := json.Marshal(body)
+	form := url.Values{}
 
-	if err != nil {
-		return err
+	for k, v := range msgParams {
+		form.Set(k, v)
 	}
 
-	url := fmt.Sprintf("%s/send?apikey=%s", apiEndpoint, os.Getenv(elasticEmailAPIKeyEmailEnvVarName))
+	endpointURL := fmt.Sprintf("%s/send?apikey=%s", apiEndpoint, os.Getenv(elasticEmailAPIKeyEmailEnvVarName))
 
-	req, err2 := http.NewRequest("POST", url, bytes.NewBuffer(byteArray))
+	req, err2 := http.NewRequest("POST", endpointURL, strings.NewReader(form.Encode()))
 
 	if err2 != nil {
 		return err2
 	}
 
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	req.Header.Add("Content-Length", strconv.Itoa(len(form.Encode())))
 
 	hc := &http.Client{
 		Timeout: 15 * time.Second,
