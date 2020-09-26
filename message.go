@@ -29,116 +29,90 @@ type Message struct {
 	Text          string
 }
 
-func (m Message) SetTemplate(t string) Message {
+func (m *Message) SetTemplate(t string) {
 	m.Template = t
-
-	return m
 }
 
-func (m Message) SetSender(name, address string) Message {
+func (m *Message) SetSender(name, address string) {
 	m.From = person{
 		name:    name,
 		address: address,
 	}
-
-	return m
 }
 
-func (m Message) SetReplyTo(name, address string) Message {
+func (m *Message) SetReplyTo(name, address string) {
 	m.ReplyTo = person{
 		name:    name,
 		address: address,
 	}
-
-	return m
 }
 
-func (m Message) AddRecipient(name, address string) Message {
+func (m *Message) AddRecipient(name, address string) {
 	m.To = append(m.To, person{
 		name:    name,
 		address: address,
 	})
-
-	return m
 }
 
-func (m Message) SetRecipient(name, address string) Message {
+func (m *Message) SetRecipient(name, address string) {
 	m.To = []person{
 		{
 			name:    name,
 			address: address,
 		},
 	}
-
-	return m
 }
 
-func (m Message) AddCC(name, address string) Message {
+func (m *Message) AddCC(name, address string) {
 	m.CC = append(m.CC, person{
 		name:    name,
 		address: address,
 	})
-
-	return m
 }
 
-func (m Message) SetCC(name, address string) Message {
+func (m *Message) SetCC(name, address string) {
 	m.CC = []person{
 		{
 			name:    name,
 			address: address,
 		},
 	}
-
-	return m
 }
 
-func (m Message) AddBCC(name, address string) Message {
+func (m *Message) AddBCC(name, address string) {
 	m.BCC = append(m.BCC, person{
 		name:    name,
 		address: address,
 	})
-
-	return m
 }
 
-func (m Message) SetBCC(name, address string) Message {
+func (m *Message) SetBCC(name, address string) {
 	m.BCC = []person{
 		{
 			name:    name,
 			address: address,
 		},
 	}
-
-	return m
 }
 
-func (m Message) SetSubject(s string) Message {
+func (m *Message) SetSubject(s string) {
 	m.Subject = s
-
-	return m
 }
 
-func (m Message) SetHTML(s string) Message {
+func (m *Message) SetHTML(s string) {
 	m.HTML = s
-
-	return m
 }
 
-func (m Message) SetText(s string) Message {
+func (m *Message) SetText(s string) {
 	m.Text = s
-
-	return m
 }
 
-func (m Message) AddVariable(key, value string) Message {
+func (m *Message) AddVariable(key, value string) {
 	if m.Substitutions == nil {
 		m.Substitutions = make(map[string]string)
 	}
 
 	m.Substitutions[key] = value
-
-	return m
 }
 
 func peopleAsString(people []person) string {
