@@ -119,7 +119,7 @@ func peopleAsString(people []person) string {
 	var a []string
 
 	for _, p := range people {
-		a = append(a, p.name+"<"+p.address+">")
+		a = append(a, p.name+" <"+p.address+">")
 	}
 
 	return strings.Join(a, ";")
