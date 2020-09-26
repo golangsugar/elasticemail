@@ -1,16 +1,30 @@
 package elasticemail
 
-import "os"
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+)
+
+type person struct {
+	name,
+	address string
+}
 
 type Message struct {
 	Template      string
 	Substitutions map[string]string
-	From          Person
-	To            []Person
-	CC            []Person
-	BCC           []Person
+	From          person
+	To            []person
+	CC            []person
+	BCC           []person
 	Subject       string
-	ReplyTo       Person
+	ReplyTo       person
 	HTML          string
 	Text          string
 }
@@ -22,37 +36,37 @@ func (m Message) SetTemplate(t string) Message {
 }
 
 func (m Message) SetSender(name, address string) Message {
-	m.From = Person{
-		Name:    name,
-		Address: address,
+	m.From = person{
+		name:    name,
+		address: address,
 	}
 
 	return m
 }
 
 func (m Message) SetReplyTo(name, address string) Message {
-	m.ReplyTo = Person{
-		Name:    name,
-		Address: address,
+	m.ReplyTo = person{
+		name:    name,
+		address: address,
 	}
 
 	return m
 }
 
 func (m Message) AddRecipient(name, address string) Message {
-	m.To = append(m.To, Person{
-		Name:    name,
-		Address: address,
+	m.To = append(m.To, person{
+		name:    name,
+		address: address,
 	})
 
 	return m
 }
 
 func (m Message) SetRecipient(name, address string) Message {
-	m.To = []Person{
+	m.To = []person{
 		{
-			Name:    name,
-			Address: address,
+			name:    name,
+			address: address,
 		},
 	}
 
@@ -60,19 +74,19 @@ func (m Message) SetRecipient(name, address string) Message {
 }
 
 func (m Message) AddCC(name, address string) Message {
-	m.CC = append(m.CC, Person{
-		Name:    name,
-		Address: address,
+	m.CC = append(m.CC, person{
+		name:    name,
+		address: address,
 	})
 
 	return m
 }
 
 func (m Message) SetCC(name, address string) Message {
-	m.CC = []Person{
+	m.CC = []person{
 		{
-			Name:    name,
-			Address: address,
+			name:    name,
+			address: address,
 		},
 	}
 
@@ -80,19 +94,19 @@ func (m Message) SetCC(name, address string) Message {
 }
 
 func (m Message) AddBCC(name, address string) Message {
-	m.BCC = append(m.BCC, Person{
-		Name:    name,
-		Address: address,
+	m.BCC = append(m.BCC, person{
+		name:    name,
+		address: address,
 	})
 
 	return m
 }
 
 func (m Message) SetBCC(name, address string) Message {
-	m.BCC = []Person{
+	m.BCC = []person{
 		{
-			Name:    name,
-			Address: address,
+			name:    name,
+			address: address,
 		},
 	}
 
@@ -127,34 +141,38 @@ func (m Message) AddVariable(key, value string) Message {
 	return m
 }
 
-func New() Message {
-	return Message{}
+func peopleAsString(people []person) string {
+	var a []string
+
+	for _, p := range people {
+		a = append(a, p.name+"<"+p.address+">")
+	}
+
+	return strings.Join(a, ";")
 }
 
-send?
-
-func (m Message) Send() error {
+func (m Message) asMap() map[string]interface{} {
 	payload := map[string]interface{}{
-		"apikey":  os.Getenv("ELASTICEMAIL_APIKEY"),
-		"isTransactional":false,
-		"subject": m.Subject,
-		"sender":m.From.Address,
-		"senderName":m.From.Name,
-		"replyTo":m.ReplyTo.Address,
-		"replyToName":m.ReplyTo.Name,
-		"msgTo":,
-		"msgCC":,
-		"msgBcc":,
+		"apikey":          os.Getenv(elasticEmailAPIKeyEmailEnvVarName),
+		"isTransactional": false,
+		"subject":         m.Subject,
+		"sender":          m.From.address,
+		"senderName":      m.From.name,
+		"replyTo":         m.ReplyTo.address,
+		"replyToName":     m.ReplyTo.name,
+		"msgTo":           peopleAsString(m.To),
+		"msgCC":           peopleAsString(m.CC),
+		"msgBcc":          peopleAsString(m.BCC),
 	}
 
-	if m.HTML!="" {
+	if m.HTML != "" {
 		payload["bodyHtml"] = m.HTML
-		payload["charsetBodyHtml"]=`utf-8`
+		payload["charsetBodyHtml"] = `utf-8`
 	}
 
-	if m.Text!="" {
+	if m.Text != "" {
 		payload["bodyText"] = m.HTML
-		payload["charsetBodyText"]=`utf-8`
+		payload["charsetBodyText"] = `utf-8`
 	}
 
 	if m.Template != "" {
@@ -166,5 +184,47 @@ func (m Message) Send() error {
 		}
 	}
 
-	return nil
+	return payload
+}
+
+// Send Email using ElasticEmail API
+func (m Message) Send() error {
+	body := m.asMap()
+
+	byteArray, err := json.Marshal(body)
+
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%s/send?apikey=%s", apiEndpoint, os.Getenv(elasticEmailAPIKeyEmailEnvVarName))
+
+	req, err2 := http.NewRequest("POST", url, bytes.NewBuffer(byteArray))
+
+	if err2 != nil {
+		return err2
+	}
+
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+	hc := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	resp, errh := hc.Do(req)
+
+	if errh != nil {
+		log.Println(errh)
+		return errh
+	}
+
+	if resp != nil {
+		if resp.StatusCode == http.StatusOK {
+			return nil
+		}
+
+		log.Printf("%d %s\n", resp.StatusCode, resp.Status)
+	}
+
+	return fmt.Errorf("error while trying to send email")
 }
