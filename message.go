@@ -196,7 +196,9 @@ func (m Message) Send() error {
 
 	if resp != nil {
 		if resp.Body != nil {
-			log.Println(resp.Body)
+			data := make([]byte, 0)
+			_, _ = resp.Body.Read(data)
+			log.Println(string(data))
 		}
 
 		if resp.StatusCode == http.StatusOK {
