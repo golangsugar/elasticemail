@@ -2,6 +2,7 @@ package elasticemail
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -119,7 +120,11 @@ func peopleAsString(people []person) string {
 	var a []string
 
 	for _, p := range people {
-		a = append(a, p.name+" <"+p.address+">")
+		if p.name != "" {
+			a = append(a, p.name+" <"+p.address+">")
+		} else {
+			a = append(a, p.address)
+		}
 	}
 
 	return strings.Join(a, ";")
@@ -130,8 +135,8 @@ func (m Message) asMap() map[string]string {
 		"apikey":          os.Getenv(elasticEmailAPIKeyEmailEnvVarName),
 		"isTransactional": "true",
 		"subject":         m.Subject,
-		"sender":          m.From.address,
-		"senderName":      m.From.name,
+		"from":            m.From.address,
+		"fromName":        m.From.name,
 		"replyTo":         m.ReplyTo.address,
 		"replyToName":     m.ReplyTo.name,
 		"msgTo":           peopleAsString(m.To),
@@ -171,9 +176,11 @@ func (m Message) Send() error {
 		form.Set(k, v)
 	}
 
-	endpointURL := fmt.Sprintf("%s/send?apikey=%s", apiEndpoint, os.Getenv(elasticEmailAPIKeyEmailEnvVarName))
+	endpointURL := fmt.Sprintf("%s/send", apiEndpoint)
 
-	req, err2 := http.NewRequest("POST", endpointURL, strings.NewReader(form.Encode()))
+	params := form.Encode()
+
+	req, err2 := http.NewRequest("POST", endpointURL, strings.NewReader(params))
 
 	if err2 != nil {
 		return err2
@@ -181,7 +188,7 @@ func (m Message) Send() error {
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	req.Header.Add("Content-Length", strconv.Itoa(len(form.Encode())))
+	req.Header.Add("Content-Length", strconv.Itoa(len(params)))
 
 	hc := &http.Client{
 		Timeout: 15 * time.Second,
@@ -196,9 +203,9 @@ func (m Message) Send() error {
 
 	if resp != nil {
 		if resp.Body != nil {
-			data := make([]byte, 0)
-			_, _ = resp.Body.Read(data)
-			log.Println(string(data))
+			if body, err := ioutil.ReadAll(resp.Body); err == nil {
+				log.Println(string(body))
+			}
 		}
 
 		if resp.StatusCode == http.StatusOK {
